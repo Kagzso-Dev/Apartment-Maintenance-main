@@ -1,0 +1,329 @@
+﻿<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Apartment Maintenance Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles/glass.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body>
+  <div class="app-bg"></div>
+  <!-- Top Navigation Header -->
+  <header class="top-nav glass-card hidden">
+    <div class="logo-section">
+      <img src="./images/logo.png" alt="Logo" class="header-logo">
+    </div>
+    <div class="title-section">
+      <span class="kagzso-logo" id="bannerApartmentName">Apartment Name</span>
+    </div>
+    <div class="admin-section">
+      <button class="btn primary hidden" id="dashboardBtn">
+        <span class="icon">📊</span>
+        <span>Analytics Dashboard</span>
+      </button>
+      <button class="btn primary hidden" id="flatsBtn">
+        <span class="icon">🏢</span>
+        <span>Flats Overview</span>
+      </button>
+      <button class="btn ghost" id="adminToggle">
+        <span class="icon">🔐</span>
+        <span>Administrator</span>
+      </button>
+      <span id="adminStatus" class="admin-status" hidden>
+        <span class="pulse-dot"></span> Admin Mode
+      </span>
+    </div>
+
+
+
+  </header>
+
+  <main class="container">
+    <!-- Login Section -->
+    <div id="loginContainer" class="hidden">
+      <div class="login-container">
+        <div class="login-card glass-card">
+          <div class="login-header">
+            <h1 class="apartment-heading">Kagzso</h1>
+            <div class="login-logo-circle">
+              <img src="./images/logo.png" alt="Logo" class="header-logo">
+            </div>
+            <h2>Maintenance Login</h2>
+            <p>Enter your security password to access the portal</p>
+          </div>
+
+          <div class="login-form">
+            <div class="login-input-wrapper">
+              <label for="loginInput">Security Password</label>
+              <div class="input-container">
+                <span class="input-icon">🔒</span>
+                <input type="password" id="loginInput" class="login-input" placeholder="Enter password">
+              </div>
+              <div id="loginError" class="login-error">Invalid password. Please verify and try again.</div>
+            </div>
+
+            <button id="loginBtn" class="btn primary" style="width: 100%; height: 52px;">
+              <span>Secure Access</span>
+              <span class="btn-arrow">→</span>
+            </button>
+            <button id="cardAdminBtn" class="btn ghost" style="margin-top: 15px; width: 100%;">
+              <span>System Administrator</span>
+            </button>
+          </div>
+
+          <div class="login-footer">
+            <p>© 2025 Kagzso - Secure Apartment Management</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Content Section -->
+    <div id="dashboardContent" class="hidden">
+      <!-- Flats View Section -->
+      <div id="flats-view">
+        <header class="app-header glass-card">
+          <div class="selectors">
+            <button class="btn back-btn" onclick="handleSafeBack()" title="Go Back">
+              <span class="back-icon">←</span>
+              <span class="back-text">Return</span>
+            </button>
+            <div class="selector-group">
+              <label class="selector-label">Month</label>
+              <div class="chip-row" id="monthChips"></div>
+            </div>
+          </div>
+          <div class="year-selector">
+            <label class="selector-label">Year</label>
+            <div class="chip-row" id="yearChips"></div>
+          </div>
+        </header>
+
+        <section class="summary-grid">
+          <div class="summary-card glass-card">
+            <div class="summary-label">Total Flats</div>
+            <div class="summary-value" id="totalFlats">0</div>
+          </div>
+          <div class="summary-card glass-card">
+            <div class="summary-label">Paid</div>
+            <div class="summary-value positive" id="paidCount">0</div>
+          </div>
+          <div class="summary-card glass-card">
+            <div class="summary-label">Pending</div>
+            <div class="summary-value warning" id="pendingCount">0</div>
+          </div>
+          <div class="summary-card glass-card">
+            <div class="summary-label">Total Collected</div>
+            <div class="summary-value" id="totalCollected">₹0</div>
+          </div>
+          <div class="summary-card glass-card">
+            <div class="summary-label">Outstanding</div>
+            <div class="summary-value warning" id="totalOutstanding">₹0</div>
+          </div>
+        </section>
+
+        <section class="list-section glass-card">
+          <div class="list-header">
+            <h2>Flats — <span id="currentPeriod">Jan 2025</span></h2>
+            <div class="list-actions">
+              <button class="btn ghost" data-filter="all">📂 View All</button>
+              <button class="btn ghost" data-filter="paid">✅ Paid</button>
+              <button class="btn ghost" data-filter="pending">⏳ Pending</button>
+              <button class="btn ghost" data-filter="partial">🌓 Partial</button>
+              <button class="btn primary admin-only" id="exportBtn" hidden>📥 Export XLSX</button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="flatsTable" aria-label="Flats table">
+              <thead>
+                <tr>
+                  <th>Flat</th>
+                  <th>Owner</th>
+                  <th>Status</th>
+                  <th>Mode</th>
+                  <th>Txn ID</th>
+                  <th>Due Amount</th>
+                  <th>Paid Amount</th>
+                  <th>Date</th>
+                  <th>Pending</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Rows injected by JS -->
+              </tbody>
+            </table>
+
+            <!-- Mobile card list -->
+            <div class="card-list" id="flatsCards" aria-label="Flats list" hidden>
+              <!-- Cards injected by JS -->
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Dashboard View Section -->
+      <div id="dashboard-view" class="hidden">
+        <div class="dashboard-header-row" style="display: flex; gap: 16px; align-items: center; margin-bottom: 24px;">
+          <button class="btn back-btn" onclick="handleSafeBack()" title="Go Back">
+            <span class="back-icon">←</span>
+            <span class="back-text">Return</span>
+          </button>
+          <div class="list-header" style="margin-bottom: 0;">
+            <h2 style="font-size: 20px;">Performance Analytics</h2>
+          </div>
+        </div>
+
+        <div class="dashboard-stats-grid">
+          <div class="stat-box glass-card">
+            <label>Total Flats</label>
+            <div class="value" id="dbTotalFlats">0</div>
+          </div>
+          <div class="stat-box glass-card">
+            <label>Paid Flats</label>
+            <div class="value positive" id="dbPaidFlats">0</div>
+          </div>
+          <div class="stat-box glass-card">
+            <label>Pending Flats</label>
+            <div class="value warning" id="dbPendingFlats">0</div>
+          </div>
+          <div class="stat-box glass-card">
+            <label>Total Collection</label>
+            <div class="value" id="dbTotalCollected">₹0</div>
+          </div>
+          <div class="stat-box glass-card">
+            <label>Total Outstanding</label>
+            <div class="value warning" id="dbTotalOutstanding">₹0</div>
+          </div>
+          <div class="stat-box glass-card">
+            <label>Total Customers</label>
+            <div class="value" id="dbTotalCustomers">0</div>
+          </div>
+        </div>
+
+
+        <!-- Charts Row -->
+        <div class="dashboard-charts-grid">
+          <div class="chart-card glass-card">
+            <h4>Collection Trend</h4>
+            <canvas id="collectionTrendChart"></canvas>
+          </div>
+          <div class="chart-card glass-card">
+            <h4>Payment Status</h4>
+            <canvas id="paymentStatusChart"></canvas>
+          </div>
+          <div class="chart-card glass-card">
+            <h4>Payment Modes Distribution</h4>
+            <canvas id="paymentModeChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Customer-wise Analytics -->
+        <section class="list-section glass-card" style="margin-top: 30px;">
+          <div class="list-header">
+            <h2>Customer Analytics — <span id="dbPeriod">2025</span></h2>
+            <div class="view-selector" style="display: flex; gap: 8px;">
+              <button class="chip active" id="viewByOwner">By Owner</button>
+              <button class="chip" id="viewByFlat">By Flat</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="customerAnalyticsTable">
+              <thead>
+                <tr>
+                  <th>Flat/Owner</th>
+                  <th>Paid (Months)</th>
+                  <th>Pending (Months)</th>
+                  <th>Total Contribution</th>
+                  <th>Last Payment</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Data injected by JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+
+  <!-- Edit Modal -->
+  <div id="editModal" class="modal" hidden>
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3 id="modalTitle">Edit Payment</h3>
+        <button class="btn-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- Form injected by JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn ghost" id="modalCancel">Discard</button>
+        <button class="btn primary" id="modalSave">Update Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending Breakdown Modal -->
+  <div id="pendingModal" class="modal" hidden>
+    <div class="modal-content glass-card" style="max-width: 700px;">
+      <div class="modal-header">
+        <h3 id="pendingModalTitle">Pending Breakdown</h3>
+        <button class="btn-close" id="pendingModalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="pendingModalBody" style="padding: 0; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="background: rgba(34, 211, 238, 0.1); border-bottom: 1px solid rgba(255,255,255,0.1);">
+              <th style="padding: 12px; text-align: left; color: #a1a1a1;">Month</th>
+              <th style="padding: 12px; text-align: right; color: #a1a1a1;">Due</th>
+              <th style="padding: 12px; text-align: right; color: #a1a1a1;">Paid</th>
+              <th style="padding: 12px; text-align: right; color: #a1a1a1;">Pending</th>
+              <th style="padding: 12px; text-align: center; color: #a1a1a1;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="pendingBreakdownTable">
+            <!-- Rows injected by JS -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer" style="flex-direction: column; align-items: stretch; gap: 0;">
+        <div
+          style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 14px; color: #a1a1a1;">Total Pending:</div>
+          <div id="totalPendingAmount" style="font-size: 18px; font-weight: bold; color: #22d3ee;">₹0</div>
+        </div>
+        <button class="btn ghost" id="pendingModalClose2" style="margin: 12px;">Close</button>
+      </div>
+    </div>
+
+
+
+    <!-- Footer -->
+    <footer class="footer-container">
+      <img src="./images/kagzso-logo.svg" alt="Kagzso" class="footer-logo">
+      <p>Powered by <a href="https://kagzso.com" target="_blank"
+          style="color: var(--accent); text-decoration: none; font-weight: 600;">Kagzso.com</a> - Apartment Management
+        Solutions</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="./scripts/vendor/xlsx.min.js"></script>
+    <script src="./scripts/xlsxLoader.js"></script>
+    <script src="./scripts/dashboard.js"></script>
+    <script src="./scripts/auth.js"></script>
+    <link rel="icon" type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2314282e'/%3E%3Ctext x='32' y='42' font-size='32' text-anchor='middle' fill='%2322d3ee' font-family='Arial'%3EA%3C/text%3E%3C/svg%3E" />
+</body>
+
+</html>

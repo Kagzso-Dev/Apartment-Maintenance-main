@@ -1,0 +1,24 @@
+﻿{
+  "apartmentName": "Green Meadows Residency",
+  "year": 2025,
+  "flats": [
+    { "flatNo": "A101", "ownerName": "Arun Kumar", "apartmentType": "1BHK", "monthlyAmount": 2500 },
+    { "flatNo": "A102", "ownerName": "Priya Sharma", "apartmentType": "1BHK", "monthlyAmount": 2500 },
+    { "flatNo": "A131", "ownerName": "Neha Singh", "apartmentType": "2BHK", "monthlyAmount": 3000 },
+    { "flatNo": "A132", "ownerName": "Amit Desai", "apartmentType": "2BHK", "monthlyAmount": 3000 },
+    { "flatNo": "A181", "ownerName": "Kavita Rao", "apartmentType": "3BHK", "monthlyAmount": 4000 }
+  ],
+  "transactions": [
+    { "flatNo": "A101", "month": 1, "monthName": "JAN", "year": 2025, "paymentStatus": "Paid", "paymentMode": "UPI", "paymentAmount": 2500, "paymentDate": "05-01-2025" },
+    { "flatNo": "A102", "month": 1, "monthName": "JAN", "year": 2025, "paymentStatus": "Not Paid", "paymentMode": "", "paymentAmount": 0, "paymentDate": "" },
+    { "flatNo": "A131", "month": 1, "monthName": "JAN", "year": 2025, "paymentStatus": "Paid", "paymentMode": "Bank", "paymentAmount": 3000, "paymentDate": "10-01-2025" },
+    { "flatNo": "A132", "month": 1, "monthName": "JAN", "year": 2025, "paymentStatus": "Paid", "paymentMode": "Cash", "paymentAmount": 3000, "paymentDate": "12-01-2025" },
+    { "flatNo": "A181", "month": 1, "monthName": "JAN", "year": 2025, "paymentStatus": "Not Paid", "paymentMode": "", "paymentAmount": 0, "paymentDate": "" },
+
+    { "flatNo": "A101", "month": 2, "monthName": "FEB", "year": 2025, "paymentStatus": "Paid", "paymentMode": "UPI", "paymentAmount": 2500, "paymentDate": "06-02-2025" },
+    { "flatNo": "A102", "month": 2, "monthName": "FEB", "year": 2025, "paymentStatus": "Paid", "paymentMode": "Bank", "paymentAmount": 5000, "paymentDate": "20-02-2025" },
+    { "flatNo": "A131", "month": 2, "monthName": "FEB", "year": 2025, "paymentStatus": "Paid", "paymentMode": "Bank", "paymentAmount": 3000, "paymentDate": "14-02-2025" },
+    { "flatNo": "A132", "month": 2, "monthName": "FEB", "year": 2025, "paymentStatus": "Not Paid", "paymentMode": "", "paymentAmount": 0, "paymentDate": "" },
+    { "flatNo": "A181", "month": 2, "monthName": "FEB", "year": 2025, "paymentStatus": "Paid", "paymentMode": "UPI", "paymentAmount": 8000, "paymentDate": "22-02-2025" }
+  ]
+}

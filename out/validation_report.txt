@@ -1,0 +1,9 @@
+Validation Report - Generated 2025-12-27T11:39:38.307854 UTC
+YEAR: 2025
+Expected transactions: 1200
+
+Unique flats in Customer_Details: PASS (value: 100)
+Transaction rows: PASS (value: 1200)
+Unique TransactionID: PASS (value: 1200)
+OwnerName consistent for first 10 flats: PASS
+Pending non-negative: PASS (value: 0)
