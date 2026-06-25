@@ -1,5 +1,15 @@
-﻿const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
+// Scroll a chip row left (-1) or right (+1)
+window.scrollChips = function (id, dir) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const chipWidth = (el.querySelector('.chip') || el.firstElementChild)?.offsetWidth || 80;
+  el.scrollBy({ left: dir * (chipWidth + 12), behavior: 'smooth' });
+};
+
+
+// State Management
 window.state = {
   data: null,
   month: 1,
@@ -85,6 +95,9 @@ function getEffectiveMonthlyAmount(flat, month, year) {
 }
 
 async function loadData() {
+  const spinner = document.getElementById('loadingSpinner');
+  if (spinner) spinner.classList.remove('hidden');
+
   try {
     console.log('[Dashboard] loadData() starting…');
     const [config, master, ledger] = await Promise.all([
@@ -98,16 +111,27 @@ async function loadData() {
       ledgerRows: ledger && ledger.length,
     });
 
-    // Parse config into key-value object
     const settings = {};
     config.forEach(row => {
       if (row.SettingName && row.SettingValue) {
-        settings[row.SettingName] = row.SettingValue;
+        settings[row.SettingName] = String(row.SettingValue).trim();
       }
     });
+
+    // Update state from config
     state.currency = settings.Currency || 'INR';
-    state.currencySymbol = settings.CurrencySymbol || '₹';
-    console.log('Loaded config:', settings);
+    state.currencySymbol = settings.CurrencySymbol === 'INR' ? '₹' : (settings.CurrencySymbol || '₹');
+    if (settings.Year) {
+      state.year = parseInt(settings.Year, 10);
+      console.log('Set dashboard year to:', state.year);
+    }
+    if (settings.ApartmentName) {
+      const bannerApt = document.getElementById('bannerApartmentName');
+      const loginApt = document.querySelector('.apartment-heading');
+      if (bannerApt) bannerApt.textContent = settings.ApartmentName;
+      if (loginApt) loginApt.textContent = settings.ApartmentName;
+    }
+    console.log('Loaded config settings from Excel:', settings);
 
     console.log('Raw master data (first row):', master[0]);
     console.log('Raw ledger data (first row):', ledger[0]);
@@ -155,7 +179,6 @@ async function loadData() {
       }
     }).filter(t => t !== null);
 
-    // Extract apartment name from first master row if available
     const apartmentName = settings.ApartmentName || 'Apartment Name';
     const year = Number(settings.Year) || 2025;
     state.data = { apartmentName, year, flats, transactions: tx, config: settings };
@@ -177,6 +200,11 @@ async function loadData() {
   render();
   wireActions();
   wireAdminActions();
+
+  // Hide spinner after small delay for smoothness
+  setTimeout(() => {
+    if (spinner) spinner.classList.add('hidden');
+  }, 800);
 }
 
 function buildSelectors() {
@@ -197,8 +225,16 @@ function buildSelectors() {
   });
 
   yearChips.innerHTML = '';
-  const y = state.year;
-  [y - 1, y, y + 1].forEach(yr => {
+  // Start from the year defined in Excel (with fallback to 2025)
+  const baseYear = state.data && state.data.year ? state.data.year : 2025;
+  const years = [];
+  
+  // Create a dynamic range starting from 2 years before the excel year, up to 15 years ahead
+  for (let yr = baseYear - 2; yr <= baseYear + 15; yr++) {
+    years.push(yr);
+  }
+
+  years.forEach(yr => {
     const b = document.createElement('button');
     b.className = 'chip' + (yr === state.year ? ' active' : '');
     b.textContent = String(yr);
@@ -403,7 +439,7 @@ function renderList() {
           <div class="card-title">${row.flatNo} • ${info.ownerName || ''}</div>
           <div class="card-sub">${dateStr}</div>
         </div>
-        <div><span class="badge ${badgeClass}">${statusLabel}</span>${isVacant ? '<span class="badge" style="background:#8B6914;margin-left:4px;">Vacant</span>' : ''}</div>
+        <div><span class="badge ${badgeClass}">${statusLabel}</span>${isVacant ? '<span class="badge vacant" style="margin-left:4px;">Vacant</span>' : ''}</div>
       </div>
       <div class="card-row" style="margin-top:8px;">
         <div class="card-sub">Due</div>
@@ -484,10 +520,18 @@ function render() {
 
 function applyFilter(filter) {
   state.filter = filter;
+  // Update chip buttons
   document.querySelectorAll('.list-actions .btn[data-filter]').forEach(b => {
     const f = b.getAttribute('data-filter');
     b.classList.toggle('active', f === filter);
   });
+  // Update summary cards
+  const totalCard = document.getElementById('totalFlatsCard');
+  const paidCard = document.getElementById('paidCard');
+  const pendingCard = document.getElementById('pendingCard');
+  if (totalCard) totalCard.classList.toggle('active', filter === 'all');
+  if (paidCard) paidCard.classList.toggle('active', filter === 'paid');
+  if (pendingCard) pendingCard.classList.toggle('active', filter === 'pending');
   render();
 }
 
@@ -499,19 +543,20 @@ function wireActions() {
     });
   });
 
-  const paidCountEl = document.getElementById('paidCount');
-  if (paidCountEl) {
-    paidCountEl.addEventListener('click', () => applyFilter('paid'));
+  // Summary Card Filter Listeners
+  const totalCard = document.getElementById('totalFlatsCard');
+  if (totalCard) {
+    totalCard.addEventListener('click', () => applyFilter('all'));
   }
 
-  const pendingCountEl = document.getElementById('pendingCount');
-  if (pendingCountEl) {
-    pendingCountEl.addEventListener('click', () => applyFilter('pending'));
+  const paidCard = document.getElementById('paidCard');
+  if (paidCard) {
+    paidCard.addEventListener('click', () => applyFilter('paid'));
   }
 
-  const totalFlatsEl = document.getElementById('totalFlats');
-  if (totalFlatsEl) {
-    totalFlatsEl.addEventListener('click', () => applyFilter('all'));
+  const pendingCard = document.getElementById('pendingCard');
+  if (pendingCard) {
+    pendingCard.addEventListener('click', () => applyFilter('pending'));
   }
 
   // View by Owner / Flat toggle wiring
@@ -585,48 +630,10 @@ function wireAdminActions() {
       }
     });
   }
-
-  // Dashboard View Toggling
-  const dashboardBtn = document.getElementById('dashboardBtn');
-  const flatsBtn = document.getElementById('flatsBtn');
-  const flatsView = document.getElementById('flats-view');
-  const dashboardView = document.getElementById('dashboard-view');
-
-  if (dashboardBtn) {
-    dashboardBtn.addEventListener('click', () => {
-      flatsView.classList.add('hidden');
-      dashboardView.classList.remove('hidden');
-      dashboardBtn.classList.add('hidden');
-      flatsBtn.classList.remove('hidden');
-      calculateDashboardData();
-    });
-  }
-
-  if (flatsBtn) {
-    flatsBtn.addEventListener('click', () => {
-      dashboardView.classList.add('hidden');
-      flatsView.classList.remove('hidden');
-      flatsBtn.classList.add('hidden');
-      dashboardBtn.classList.remove('hidden');
-      render(); // Refresh flats view
-    });
-  }
 }
-
-
 
 function updateAdminUI() {
   document.body.classList.toggle('admin-mode', state.isAdmin);
-
-  const adminStatus = document.getElementById('adminStatus');
-  if (adminStatus) {
-    adminStatus.hidden = !state.isAdmin;
-  }
-
-  const adminToggle = document.getElementById('adminToggle');
-  if (adminToggle) {
-    adminToggle.hidden = state.isAdmin;
-  }
 
   const exportBtn = document.getElementById('exportBtn');
   if (exportBtn) {
@@ -636,6 +643,28 @@ function updateAdminUI() {
   const dashboardBtn = document.getElementById('dashboardBtn');
   const flatsBtn = document.getElementById('flatsBtn');
   const dashboardView = document.getElementById('dashboard-view');
+  const flatsView = document.getElementById('flats-view');
+
+  // Add click listeners if not already present (Consolidated Navigation)
+  if (dashboardBtn && !dashboardBtn.hasListener) {
+    dashboardBtn.addEventListener('click', () => {
+      dashboardView?.classList.remove('hidden');
+      flatsView?.classList.add('hidden');
+      updateAdminUI();
+      if (typeof calculateDashboardData === 'function') calculateDashboardData();
+    });
+    dashboardBtn.hasListener = true;
+  }
+
+  if (flatsBtn && !flatsBtn.hasListener) {
+    flatsBtn.addEventListener('click', () => {
+      dashboardView?.classList.add('hidden');
+      flatsView?.classList.remove('hidden');
+      updateAdminUI();
+      if (typeof render === 'function') render();
+    });
+    flatsBtn.hasListener = true;
+  }
 
   if (dashboardBtn || flatsBtn) {
     const isDashboardVisible = dashboardView && !dashboardView.classList.contains('hidden');
@@ -782,27 +811,27 @@ function showPendingBreakdown(flatNo) {
 
   rows.forEach(row => {
     const tr = document.createElement('tr');
-    tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+    tr.style.borderBottom = '1px solid var(--card-border)';
     tr.style.transition = 'background 0.2s';
     tr.addEventListener('mouseenter', () => tr.style.background = 'rgba(34, 211, 238, 0.08)');
     tr.addEventListener('mouseleave', () => tr.style.background = 'transparent');
 
     tr.innerHTML = `
-      <td style="padding: 12px; color: #fff;">
+      <td style="padding: 12px; color: var(--text-primary);">
         <div style="font-weight: 600;">${row.month}</div>
-        <div style="font-size: 10px; color: #a1a1a1;">${row.isVacant ? 'VACANT' : 'REGULAR'}</div>
+        <div style="font-size: 10px; color: var(--text-secondary); opacity: 0.8;">${row.isVacant ? 'VACANT' : 'REGULAR'}</div>
       </td>
       <td style="padding: 12px; text-align: right;">
-        <div style="font-size: 10px; color: #a1a1a1;">Due</div>
-        <div style="color: #fff;">${fmtINR(row.due)}</div>
+        <div style="font-size: 10px; color: var(--text-secondary); opacity: 0.8;">Due</div>
+        <div style="color: var(--text-primary);">${fmtINR(row.due)}</div>
       </td>
       <td style="padding: 12px; text-align: right;">
-        <div style="font-size: 10px; color: #a1a1a1;">Paid</div>
-        <div style="color: #22d3ee; font-weight: 500;">${fmtINR(row.paid)}</div>
+        <div style="font-size: 10px; color: var(--text-secondary); opacity: 0.8;">Paid</div>
+        <div style="color: var(--accent); font-weight: 600;">${fmtINR(row.paid)}</div>
       </td>
       <td style="padding: 12px; text-align: right;">
-        <div style="font-size: 10px; color: #a1a1a1;">Pending</div>
-        <div style="color: ${row.pending > 0 ? '#ff6b6b' : '#00d084'}; font-weight: 500;">${fmtINR(row.pending)}</div>
+        <div style="font-size: 10px; color: var(--text-secondary); opacity: 0.8;">Pending</div>
+        <div style="color: ${row.pending > 0 ? 'var(--warning)' : 'var(--positive)'}; font-weight: 600;">${fmtINR(row.pending)}</div>
       </td>
       <td style="padding: 12px; text-align: center;">
         <span class="badge ${row.isPaid ? 'paid' : 'pending'}" style="font-size: 10px; padding: 2px 6px;">${row.isPaid ? 'PAID' : 'DUE'}</span>
@@ -955,6 +984,13 @@ function exportToXLSX() {
 }
 
 async function saveToServer() {
+  const spinner = document.getElementById('loadingSpinner');
+  if (spinner) {
+    spinner.classList.remove('hidden');
+    const text = spinner.querySelector('.loading-text');
+    if (text) text.textContent = 'Saving Changes...';
+  }
+
   try {
     const response = await fetch('http://localhost:3000/api/save', {
       method: 'POST',
@@ -980,6 +1016,12 @@ async function saveToServer() {
   } catch (error) {
     alert('Error: Could not connect to server. Make sure the server is running (npm start).');
     console.error('Network error:', error);
+  } finally {
+    if (spinner) {
+      spinner.classList.add('hidden');
+      const text = spinner.querySelector('.loading-text');
+      if (text) text.textContent = 'Loading Dashboard...'; // Reset for next use
+    }
   }
 }
 
@@ -1518,6 +1560,44 @@ document.addEventListener('keydown', (e) => {
     } catch (_) { }
   }
 });
+
+// --- Theme Toggle Logic ---
+(function initTheme() {
+  const themeToggle = document.getElementById('themeToggle');
+  const themeIcon = document.getElementById('themeIcon');
+  const SAVED_THEME = 'appTheme';
+
+  const syncIcons = (emoji) => {
+    const loginIcon = document.querySelector('.login-theme-icon');
+    if (loginIcon) { loginIcon.textContent = emoji; }
+  };
+
+  const applyTheme = (theme) => {
+    if (theme === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+      if (themeIcon) { themeIcon.textContent = '☀️'; }
+      syncIcons('☀️');
+      localStorage.setItem(SAVED_THEME, 'light');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      if (themeIcon) { themeIcon.textContent = '🌙'; }
+      syncIcons('🌙');
+      localStorage.setItem(SAVED_THEME, 'dark');
+    }
+  };
+
+  // Initial load
+  const currentTheme = localStorage.getItem(SAVED_THEME) || 'dark';
+  applyTheme(currentTheme);
+
+  if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      const nextTheme = isLight ? 'dark' : 'light';
+      applyTheme(nextTheme);
+    });
+  }
+})();
 
 
 

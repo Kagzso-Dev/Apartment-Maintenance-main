@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 
 <head>
@@ -15,6 +15,19 @@
 
 <body>
   <div class="app-bg"></div>
+
+  <!-- Loading Spinner -->
+  <div id="loadingSpinner" class="spinner-overlay hidden">
+    <div class="spinner-content">
+      <div class="premium-spinner">
+        <div class="spinner-ring"></div>
+        <div class="spinner-ring"></div>
+        <div class="spinner-ring"></div>
+        <div class="spinner-dot"></div>
+      </div>
+      <p class="loading-text">Loading Dashboard...</p>
+    </div>
+  </div>
   <!-- Top Navigation Header -->
   <header class="top-nav glass-card hidden">
     <div class="logo-section">
@@ -23,25 +36,56 @@
     <div class="title-section">
       <span class="kagzso-logo" id="bannerApartmentName">Apartment Name</span>
     </div>
+
+    <!-- Persistent Filtration - Moved from local view to top nav -->
+    <div class="nav-filter-section" id="navFilterSection">
+      <div class="selectors">
+        <div class="selector-group">
+          <label class="selector-label">Month</label>
+          <div class="scroller-container">
+            <button class="nav-arrow left" onclick="scrollChips('monthChips', -1)">‹</button>
+            <div class="chip-row scrollable-chips month-scroller" id="monthChips"></div>
+            <button class="nav-arrow right" onclick="scrollChips('monthChips', 1)">›</button>
+          </div>
+        </div>
+        <div class="selector-divider"></div>
+        <div class="year-selector">
+          <label class="selector-label">Year</label>
+          <div class="scroller-container">
+            <button class="nav-arrow left" onclick="scrollChips('yearChips', -1)">‹</button>
+            <div class="chip-row scrollable-chips year-scroller" id="yearChips"></div>
+            <button class="nav-arrow right" onclick="scrollChips('yearChips', 1)">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="admin-section">
       <button class="btn primary hidden" id="dashboardBtn">
         <span class="icon">📊</span>
-        <span>Analytics Dashboard</span>
+        <span>Dashboard</span>
       </button>
       <button class="btn primary hidden" id="flatsBtn">
         <span class="icon">🏢</span>
         <span>Flats Overview</span>
       </button>
-      <button class="btn ghost" id="adminToggle">
-        <span class="icon">🔐</span>
-        <span>Administrator</span>
-      </button>
-      <span id="adminStatus" class="admin-status" hidden>
-        <span class="pulse-dot"></span> Admin Mode
+      <span id="userModeStatus" class="user-mode-status" hidden>
+        <span class="user-pulse-dot"></span> User Mode
       </span>
+      <button id="themeToggle" class="theme-toggle-switch" title="Switch Theme" aria-label="Toggle theme">
+        <span class="toggle-track">
+          <span class="toggle-knob">
+            <span id="themeIcon">🌙</span>
+          </span>
+        </span>
+      </button>
+      <div class="logout-back-group">
+        <!-- Logout injected here by JS -->
+        <button class="btn ghost nav-back-btn" onclick="handleSafeBack()" title="Go Back">
+          <span>Back</span>
+          <span class="back-icon">←</span>
+        </button>
+      </div>
     </div>
-
-
 
   </header>
 
@@ -50,36 +94,36 @@
     <div id="loginContainer" class="hidden">
       <div class="login-container">
         <div class="login-card glass-card">
+          <button class="login-theme-toggle theme-toggle-switch" onclick="document.getElementById('themeToggle').click()" title="Switch Theme" aria-label="Toggle theme">
+            <span class="toggle-track">
+              <span class="toggle-knob">
+                <span class="login-theme-icon">🌙</span>
+              </span>
+            </span>
+          </button>
           <div class="login-header">
-            <h1 class="apartment-heading">Kagzso</h1>
-            <div class="login-logo-circle">
-              <img src="./images/logo.png" alt="Logo" class="header-logo">
+            <div class="brand-row">
+              <img src="./images/logo.png" alt="Logo" class="login-logo-img">
+              <h1 class="apartment-heading">Kagzso</h1>
             </div>
             <h2>Maintenance Login</h2>
-            <p>Enter your security password to access the portal</p>
           </div>
 
           <div class="login-form">
-            <div class="login-input-wrapper">
-              <label for="loginInput">Security Password</label>
-              <div class="input-container">
-                <span class="input-icon">🔒</span>
-                <input type="password" id="loginInput" class="login-input" placeholder="Enter password">
-              </div>
-              <div id="loginError" class="login-error">Invalid password. Please verify and try again.</div>
-            </div>
+            <p class="login-instruction">Click below to access your maintenance portal</p>
 
-            <button id="loginBtn" class="btn primary" style="width: 100%; height: 52px;">
-              <span>Secure Access</span>
-              <span class="btn-arrow">→</span>
+            <button id="loginBtn" class="btn primary btn-pill-modern" style="width: 100%; height: 50px; margin-bottom: 12px; font-size: 14px; letter-spacing: 1.5px; border-radius: 25px;">
+              <span>USER ACCESS</span>
+              <span style="margin-left: 8px;">→</span>
             </button>
-            <button id="cardAdminBtn" class="btn ghost" style="margin-top: 15px; width: 100%;">
-              <span>System Administrator</span>
+            <button id="cardAdminBtn" class="btn primary btn-pill-modern btn-admin-accent" style="width: 100%; height: 50px; font-size: 14px; letter-spacing: 1.5px; border-radius: 25px;">
+              <span>ADMIN ACCESS</span>
+              <span style="margin-left: 8px;">→</span>
             </button>
           </div>
 
           <div class="login-footer">
-            <p>© 2025 Kagzso - Secure Apartment Management</p>
+            <p>© 2026 Kagzso - Secure Apartment Management</p>
           </div>
         </div>
       </div>
@@ -89,33 +133,18 @@
     <div id="dashboardContent" class="hidden">
       <!-- Flats View Section -->
       <div id="flats-view">
-        <header class="app-header glass-card">
-          <div class="selectors">
-            <button class="btn back-btn" onclick="handleSafeBack()" title="Go Back">
-              <span class="back-icon">←</span>
-              <span class="back-text">Return</span>
-            </button>
-            <div class="selector-group">
-              <label class="selector-label">Month</label>
-              <div class="chip-row" id="monthChips"></div>
-            </div>
-          </div>
-          <div class="year-selector">
-            <label class="selector-label">Year</label>
-            <div class="chip-row" id="yearChips"></div>
-          </div>
-        </header>
+        <!-- App Header moved to Top Navigation for persistence -->
 
         <section class="summary-grid">
-          <div class="summary-card glass-card">
+          <div class="summary-card glass-card" id="totalFlatsCard">
             <div class="summary-label">Total Flats</div>
             <div class="summary-value" id="totalFlats">0</div>
           </div>
-          <div class="summary-card glass-card">
+          <div class="summary-card glass-card" id="paidCard">
             <div class="summary-label">Paid</div>
             <div class="summary-value positive" id="paidCount">0</div>
           </div>
-          <div class="summary-card glass-card">
+          <div class="summary-card glass-card" id="pendingCard">
             <div class="summary-label">Pending</div>
             <div class="summary-value warning" id="pendingCount">0</div>
           </div>
@@ -171,40 +200,36 @@
 
       <!-- Dashboard View Section -->
       <div id="dashboard-view" class="hidden">
-        <div class="dashboard-header-row" style="display: flex; gap: 16px; align-items: center; margin-bottom: 24px;">
-          <button class="btn back-btn" onclick="handleSafeBack()" title="Go Back">
-            <span class="back-icon">←</span>
-            <span class="back-text">Return</span>
-          </button>
-          <div class="list-header" style="margin-bottom: 0;">
-            <h2 style="font-size: 20px;">Performance Analytics</h2>
+        <header class="app-header glass-card">
+          <div class="list-header" style="margin: 0;">
+            <h2>Performance Analytics</h2>
           </div>
-        </div>
+        </header>
 
-        <div class="dashboard-stats-grid">
-          <div class="stat-box glass-card">
-            <label>Total Flats</label>
-            <div class="value" id="dbTotalFlats">0</div>
+        <div class="dashboard-stats-grid glass-card">
+          <div class="stat-box">
+            <div class="summary-label">Total Flats</div>
+            <div class="summary-value" id="dbTotalFlats">0</div>
           </div>
-          <div class="stat-box glass-card">
-            <label>Paid Flats</label>
-            <div class="value positive" id="dbPaidFlats">0</div>
+          <div class="stat-box">
+            <div class="summary-label">Paid Flats</div>
+            <div class="summary-value positive" id="dbPaidFlats">0</div>
           </div>
-          <div class="stat-box glass-card">
-            <label>Pending Flats</label>
-            <div class="value warning" id="dbPendingFlats">0</div>
+          <div class="stat-box">
+            <div class="summary-label">Pending Flats</div>
+            <div class="summary-value warning" id="dbPendingFlats">0</div>
           </div>
-          <div class="stat-box glass-card">
-            <label>Total Collection</label>
-            <div class="value" id="dbTotalCollected">₹0</div>
+          <div class="stat-box">
+            <div class="summary-label">Total Collection</div>
+            <div class="summary-value" id="dbTotalCollected">₹0</div>
           </div>
-          <div class="stat-box glass-card">
-            <label>Total Outstanding</label>
-            <div class="value warning" id="dbTotalOutstanding">₹0</div>
+          <div class="stat-box">
+            <div class="summary-label">Outstanding</div>
+            <div class="summary-value warning" id="dbTotalOutstanding">₹0</div>
           </div>
-          <div class="stat-box glass-card">
-            <label>Total Customers</label>
-            <div class="value" id="dbTotalCustomers">0</div>
+          <div class="stat-box">
+            <div class="summary-label">Customers</div>
+            <div class="summary-value" id="dbTotalCustomers">0</div>
           </div>
         </div>
 
@@ -257,6 +282,31 @@
   </main>
 
 
+  <!-- Auth Login Modal -->
+  <div id="adminModal" class="modal" hidden>
+    <div class="modal-content glass-card" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 id="authModalTitle">Secure Access</h3>
+        <button class="btn-close" id="adminModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="login-input-wrapper" style="margin-bottom: 0;">
+          <label id="authModalLabel">Security Password</label>
+          <div class="input-container">
+            <span class="input-icon" id="authModalIcon">🔒</span>
+            <input type="password" id="adminModalInput" class="login-input" placeholder="Enter password" style="padding-left: 45px !important; padding-right: 48px !important;">
+            <button type="button" class="eye-toggle-btn" id="eyeToggleBtn" onclick="(function(){var i=document.getElementById('adminModalInput'),b=document.getElementById('eyeToggleBtn');if(i.type==='password'){i.type='text';b.textContent='🙈';}else{i.type='password';b.textContent='👁';}})()" title="Show/Hide password">👁</button>
+          </div>
+          <div id="adminModalError" class="login-error" style="display: none;">Invalid password. Please try again.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn ghost" id="adminModalCancel">Cancel</button>
+        <button class="btn primary" id="adminModalSubmit">Verify Access</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Edit Modal -->
   <div id="editModal" class="modal" hidden>
     <div class="modal-content glass-card">
@@ -306,17 +356,6 @@
         <button class="btn ghost" id="pendingModalClose2" style="margin: 12px;">Close</button>
       </div>
     </div>
-
-
-
-    <!-- Footer -->
-    <footer class="footer-container">
-      <img src="./images/kagzso-logo.svg" alt="Kagzso" class="footer-logo">
-      <p>Powered by <a href="https://kagzso.com" target="_blank"
-          style="color: var(--accent); text-decoration: none; font-weight: 600;">Kagzso.com</a> - Apartment Management
-        Solutions</p>
-    </footer>
-
     <!-- Scripts -->
     <script src="./scripts/vendor/xlsx.min.js"></script>
     <script src="./scripts/xlsxLoader.js"></script>

@@ -44,8 +44,6 @@
         const topNav = document.querySelector('.top-nav');
         const loginContainer = document.getElementById('loginContainer');
         const dashboardContent = document.getElementById('dashboardContent');
-        const loginInput = document.getElementById('loginInput');
-        const loginError = document.getElementById('loginError');
         const loginBtn = document.getElementById('loginBtn');
 
         // PERMANENT REMOVAL LOGIC: Initialize visibility immediately based on stored state
@@ -59,11 +57,56 @@
         // Load dynamic config in the background
         await loadPasswords();
 
-        // Handle Login
+        // 1. Handle Login
+        let loginType = 'user'; // 'user' or 'admin'
+
+        if (loginBtn) {
+            loginBtn.addEventListener('click', () => {
+                loginType = 'user';
+                showAuthModal();
+            });
+        }
+
+
+
+        if (cardAdminBtn) {
+            cardAdminBtn.addEventListener('click', () => {
+                loginType = 'admin';
+                showAuthModal();
+            });
+        }
+
+        function showAuthModal() {
+            if (adminModal) {
+                // Update modal visuals based on who is logging in
+                const title = document.getElementById('authModalTitle');
+                const label = document.getElementById('authModalLabel');
+                const icon = document.getElementById('authModalIcon');
+
+                if (loginType === 'admin') {
+                    title.textContent = 'Administrator Access';
+                    label.textContent = 'Admin Password';
+                    icon.textContent = '🛠️';
+                } else {
+                    title.textContent = 'Security Access';
+                    label.textContent = 'Portal Password';
+                    icon.textContent = '🔒';
+                }
+
+                adminModal.classList.remove('hidden');
+                adminModal.hidden = false;
+                adminModalInput.value = '';
+                adminModalError.style.display = 'none';
+                setTimeout(() => adminModalInput.focus(), 100);
+            }
+        }
+
         function handleLogin() {
-            const val = loginInput.value;
-            if (val === passwords.UserPassword || val === passwords.AdminPassword) {
-                const isAdmin = val === passwords.AdminPassword;
+            const val = adminModalInput.value;
+            const targetPass = loginType === 'admin' ? passwords.AdminPassword : passwords.UserPassword;
+
+            if (val === targetPass) {
+                const isAdmin = loginType === 'admin';
                 localStorage.setItem(LOGIN_KEY, "true");
                 if (isAdmin) {
                     localStorage.setItem(ADMIN_KEY, "true");
@@ -75,48 +118,54 @@
                     if (window.state) window.state.isAdmin = false;
                 }
 
+                closeAdminModal();
                 showDashboard();
-                // Push state to prevent back button from logging out
                 window.history.pushState({ loggedIn: true, role: localStorage.getItem(ROLE_KEY) }, "");
             } else {
-                loginError.style.display = 'block';
-                loginInput.value = '';
+                adminModalError.style.display = 'block';
+                adminModalInput.value = '';
+                adminModalInput.focus();
             }
         }
-
-        loginBtn.addEventListener('click', () => handleLogin());
-
-        // Submit on Enter
-        loginInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleLogin();
-        });
 
         function showDashboard() {
             loginContainer.classList.add('hidden');
             dashboardContent.classList.remove('hidden');
             const role = localStorage.getItem(ROLE_KEY);
 
-            // OPTION 1: Conditional Rendering (adapted for Vanilla JS)
-            // Remove the top header exclusively for the 'user' dashboard
+            // Sync state.isAdmin with the actual stored role (critical for auto-restore on page reload)
+            if (window.state) window.state.isAdmin = (role === 'admin');
+
             if (topNav) {
+                topNav.classList.remove('hidden');
+
+                const dashboardBtn = document.getElementById('dashboardBtn');
+                const flatsBtn = document.getElementById('flatsBtn');
+                const adminToggle = document.getElementById('adminToggle');
+                const userModeStatus = document.getElementById('userModeStatus');
+
                 if (role === 'user') {
-                    topNav.classList.add('hidden');
+                    // Hide admin-only nav elements
+                    if (dashboardBtn) dashboardBtn.classList.add('hidden');
+                    if (flatsBtn) flatsBtn.classList.add('hidden');
+                    if (adminToggle) adminToggle.classList.add('hidden');
+                    // Show User Mode badge
+                    if (userModeStatus) {
+                        userModeStatus.innerHTML = '<span class="user-pulse-dot"></span> User Mode';
+                        userModeStatus.className = 'user-mode-status';
+                        userModeStatus.hidden = false;
+                    }
                 } else {
-                    topNav.classList.remove('hidden');
+                    // Admin: show it as "Admin Mode"
+                    if (userModeStatus) {
+                        userModeStatus.innerHTML = '<span class="pulse-dot"></span> Admin Mode';
+                        userModeStatus.className = 'admin-status';
+                        userModeStatus.hidden = false;
+                    }
                 }
             }
 
-            // Ensure correct button visibility
-            const adminToggle = document.getElementById('adminToggle');
-            if (adminToggle) {
-                if (role === 'user') {
-                    adminToggle.classList.add('hidden');
-                } else if (role === 'admin') {
-                    adminToggle.classList.remove('hidden');
-                }
-            }
-
-            addLogoutButton(role);
+            addLogoutButton();
             // Start loading dashboard data if not already loaded
             if (typeof loadData === 'function' && !window.dataLoaded) {
                 loadData();
@@ -133,10 +182,6 @@
             dashboardContent.classList.add('hidden');
             if (topNav) topNav.classList.add('hidden');
             removeLogoutButton();
-
-            // Restore Admin button visibility for the next session if needed
-            const adminToggle = document.getElementById('adminToggle');
-            if (adminToggle) adminToggle.classList.remove('hidden');
         }
 
         // --- Back Button Implementation ---
@@ -171,28 +216,19 @@
             }
         };
 
-        function addLogoutButton(role) {
+        function addLogoutButton() {
             if (document.getElementById('logoutBtn')) {
-                // If it already exists, ensure it's in the right parent for the current role
                 const btn = document.getElementById('logoutBtn');
                 btn.remove();
             }
 
-            // Determine the target container (Admin header vs User dashboard header)
-            let target;
-            if (role === 'user') {
-                // For users, we put logout in the flats view header since top-nav is hidden
-                target = document.querySelector('#flats-view .selectors');
-            } else {
-                // For admins, keep it in the top-nav admin section
-                target = document.querySelector('.admin-section');
-            }
+            // Target the logout-back-group so Logout sits above the ← back button
+            const target = document.querySelector('.logout-back-group');
 
             if (target) {
                 const logoutBtn = document.createElement('button');
                 logoutBtn.id = 'logoutBtn';
                 logoutBtn.className = 'btn ghost logout-btn';
-                logoutBtn.style.marginLeft = role === 'user' ? 'auto' : '12px';
                 logoutBtn.innerHTML = '<span>Logout</span> <span style="font-size:16px;">🚪</span>';
                 logoutBtn.addEventListener('click', () => {
                     localStorage.removeItem(LOGIN_KEY);
@@ -200,7 +236,7 @@
                     localStorage.removeItem(ADMIN_KEY);
                     location.reload();
                 });
-                target.appendChild(logoutBtn);
+                target.insertBefore(logoutBtn, target.firstChild);
             }
         }
 
@@ -209,36 +245,28 @@
             if (logoutBtn) logoutBtn.remove();
         }
 
-        // Handle Admin Login Button in Header and on Card
-        const adminToggle = document.getElementById('adminToggle');
-        const cardAdminBtn = document.getElementById('cardAdminBtn');
-
-        const triggerAdminPrompt = () => {
-            const pass = prompt("Enter Admin Password:");
-            if (pass === passwords.AdminPassword) {
-                localStorage.setItem(ADMIN_KEY, "true");
-                localStorage.setItem(LOGIN_KEY, "true");
-                localStorage.setItem(ROLE_KEY, "admin");
-                if (window.state) window.state.isAdmin = true;
-                location.reload();
-            } else if (pass) {
-                alert("Invalid Admin Password");
+        // Global helpers for specialized modal actions
+        window.closeAdminModal = () => {
+            if (adminModal) {
+                adminModal.classList.add('hidden');
+                adminModal.hidden = true;
             }
         };
 
-        if (adminToggle) {
-            adminToggle.addEventListener('click', () => {
-                if (localStorage.getItem(LOGIN_KEY) !== "true") {
-                    showLogin();
-                    loginInput.focus();
-                } else if (localStorage.getItem(ADMIN_KEY) !== "true") {
-                    triggerAdminPrompt();
-                }
+        if (adminModalSubmit) adminModalSubmit.addEventListener('click', handleLogin);
+        if (adminModalCancel) adminModalCancel.addEventListener('click', window.closeAdminModal);
+        if (adminModalClose) adminModalClose.addEventListener('click', window.closeAdminModal);
+        
+        if (adminModalInput) {
+            adminModalInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleLogin();
             });
         }
 
-        if (cardAdminBtn) {
-            cardAdminBtn.addEventListener('click', triggerAdminPrompt);
+        if (adminModal) {
+            adminModal.addEventListener('click', (e) => {
+                if (e.target === adminModal) window.closeAdminModal();
+            });
         }
 
         // Browser Back Protection: Prevent returning to login if session exists
